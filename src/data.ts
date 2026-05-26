@@ -150,7 +150,7 @@ export const projectsData: Project[] = [
       'Desain Bento kontemporer super-responsif',
       'Riwayat percakapan disimpan persisten'
     ],
-    imageUrl: '/public/pointweb.png' // Placeholder image, styled beautifully
+    imageUrl: '/pointweb.png' // Placeholder image, styled beautifully
   },
   {
     id: 'proj-2',
@@ -186,7 +186,7 @@ export const projectsData: Project[] = [
       'Simulasi partikel interaktif di latar belakang',
       'Sepenuhnya ramah SEO & aksesibilitas global'
     ],
-    imageUrl: '/public/webutama.png' // Placeholder image, styled beautifully
+    imageUrl: '/webutama.png' // Placeholder image, styled beautifully
   }
 ];
 
@@ -196,48 +196,48 @@ export const certificatesData: Certificate[] = [
     title: 'Bimbingan Kerja & Karir',
     issuer: 'BKK SMK PGRI 2 PONOROGO',
     date: 'November 2021',
-    imageUrl: '/public/BKK.png', 
-    credentialUrl: '/public/Sertif-BKK.pdf' // <-- Relative to public root
+    imageUrl: '/BKK.png', 
+    credentialUrl: '/Sertif-BKK.pdf' // <-- Relative to public root
   },
   {
     id: 'cert-2',
     title: 'UKK Kubota',
     issuer: 'PT. Kubota Indonesia',
     date: 'Mei 2022',
-    imageUrl: '/public/Kubota.png', 
-    credentialUrl: '/public/Sertif-Kubota.pdf' // <-- Relative to public root
+    imageUrl: '/Kubota.png', 
+    credentialUrl: '/Sertif-Kubota.pdf' // <-- Relative to public root
   },
   {
     id: 'cert-3',
     title: 'Pendidikan Sistem Ganda',
     issuer: 'PT. Inter Tehnik Gemilang',
     date: 'September 2021',
-    imageUrl: '/public/Magang.png', 
-    credentialUrl: '/public/Sertif-Magang.pdf' // <-- Relative to public root
+    imageUrl: '/Magang.png', 
+    credentialUrl: 'Sertif-Magang.pdf' // <-- Relative to public root
   },
   {
     id: 'cert-4',
     title: 'Seminar Nasional & Pelatihan Minat Bakat',
     issuer: 'HIMAAKSI',
     date: 'Agustus 2024',
-    imageUrl: '/public/Seminar.png', 
-    credentialUrl: '/public/Sertif-Seminar.pdf' // <-- Relative to public root
+    imageUrl: '/Seminar.png', 
+    credentialUrl: '/Sertif-Seminar.pdf' // <-- Relative to public root
   },
   {
     id: 'cert-5',
     title: 'Sertifikasi Komputer',
     issuer: 'Trust Training Partners',
     date: 'Februari 2024',
-    imageUrl: '/public/Serkom.png', 
-    credentialUrl: '/public/Sertif-Serkom.pdf' // <-- Relative to public root
+    imageUrl: '/Serkom.png', 
+    credentialUrl: '/Sertif-Serkom.pdf' // <-- Relative to public root
   },
   {
     id: 'cert-6',
     title: 'UKK United Tractors',
     issuer: 'SMK PGRI 2 PONOROGO',
     date: 'April 2022',
-    imageUrl: '/public/UKK UT.png', 
-    credentialUrl: '/public/Sertif-UKK-UT.pdf' // <-- Relative to public root
+    imageUrl: '/UKK UT.png', 
+    credentialUrl: '/Sertif-UKK-UT.pdf' // <-- Relative to public root
   }
 ];
 

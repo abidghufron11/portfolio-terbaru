@@ -6,7 +6,7 @@ export const personalData = {
   subtitle: "Membangun Solusi Digital Modern dengan Performa Maksimal dan Estetika Sempurna",
   aboutText1: "Saya adalah seorang Frontend Developer dan Full-Stack Engineer yang berdedikasi tinggi untuk menciptakan aplikasi web interaktif, responsif, dan berperforma tinggi. Dengan pengalaman lebih dari 3 tahun, saya memadukan fungsionalitas backend yang kokoh dengan estetika visual frontend yang memikat.",
   aboutText2: "Berbasis di Ponorogo, Indonesia, saya fokus pada ekosistem modern seperti React, Node.js, Next.js, dan arsitektur Cloud Serverless. Saya selalu berupaya menulis kode yang bersih, mudah dikelola, serta menerapkan standar praktik SEO dan aksesibilitas global demi menghadirkan pengalaman pengguna terbaik.",
-  avatarUrl: "/public/02.jpg", // Placeholder for avatar, styled beautifully
+  avatarUrl: "/02.jpg", // Placeholder for avatar, styled beautifully
   cvUrl: "#", // Global CV link placeholder
   location: "Ponorogo, Indonesia",
   email: "abidghufron11@gmail.com",

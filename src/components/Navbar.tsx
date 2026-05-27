@@ -6,19 +6,19 @@ import { useLanguage } from '../context/LanguageContext';
 const AVATAR_PRESETS = [
   {
     name: "Classic Elegant",
-    url: "/public/02.jpg"
+    url: "/02.jpg"
   },
   {
     name: "Tech Nomad",
-    url: "/public/03.jpeg"
+    url: "/03.jpeg"
   },
   {
     name: "Cyber Orange",
-    url: "/public/04.png"
+    url: "/04.png"
   },
   {
     name: "Artistic Minimalist",
-    url: "/public/05.jpeg"
+    url: "/05.jpeg"
   }
 ];
 

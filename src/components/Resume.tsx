@@ -166,10 +166,10 @@ export default function Resume() {
         {/* Continuous marquee-driven smooth view */}
         <div className="relative py-6 select-none">
           {/* Main viewport mask wrapper with fine borders and visual depth */}
-          <div className="relative overflow-hidden rounded-2xl p-4 bg-[#080d19]/25 border border-navy-blue/35 backdrop-blur-xs">
-            {/* Faded edges to give an authentic continuous infinity backdrop aesthetic */}
-            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-bg-base via-bg-base/70 to-transparent z-20 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-bg-base via-bg-base/70 to-transparent z-20 pointer-events-none" />
+          <div className="relative overflow-hidden rounded-2xl p-4 bg-transparent border border-navy-blue/35">
+            {/* Faded edges to give an authentic continuous infinity backdrop aesthetic with no clipping */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-r from-bg-base via-bg-base/70 to-transparent z-20 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 md:w-12 bg-gradient-to-l from-bg-base via-bg-base/70 to-transparent z-20 pointer-events-none" />
 
             <div 
               ref={marqueeRef}
@@ -191,7 +191,7 @@ export default function Resume() {
                     <MagicCard
                       onClick={() => setActiveCredentialModal(cert)}
                       disableHoverAmbient={true}
-                      className="group flex flex-col justify-between h-full cursor-pointer bg-bg-card duration-300"
+                      className="group flex flex-col justify-between h-full cursor-pointer bg-bg-card duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)]"
                     >
                       {/* Lazy Loading Image container */}
                       <div className="relative aspect-[3/2] overflow-hidden bg-navy-blue/15 border-b border-navy-blue/50">
@@ -252,7 +252,7 @@ export default function Resume() {
                     <MagicCard
                       onClick={() => setActiveCredentialModal(cert)}
                       disableHoverAmbient={true}
-                      className="group flex flex-col justify-between h-full cursor-pointer bg-bg-card duration-300"
+                      className="group flex flex-col justify-between h-full cursor-pointer bg-bg-card duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)]"
                     >
                       {/* Lazy Loading Image container */}
                       <div className="relative aspect-[3/2] overflow-hidden bg-navy-blue/15 border-b border-navy-blue/50">
@@ -326,8 +326,8 @@ export default function Resume() {
             </button>
 
             {/* Custom Interactive Speed Adjuster */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#090D1A]/60 border border-navy-blue/40">
-              <span className="text-[10px] font-mono uppercase font-bold text-gray-500 mr-1">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-100 border border-neutral-200 dark:bg-bg-card dark:border-navy-blue/60 shadow-md">
+              <span className="text-[10px] font-mono uppercase font-black text-neutral-500 dark:text-gray-400 mr-1">
                 {language === 'en' ? 'Speed:' : 'Kecepatan:'}
               </span>
               {[
@@ -343,8 +343,8 @@ export default function Resume() {
                   }}
                   className={`px-3 py-1 rounded-lg text-[10px] font-sans font-semibold transition-all cursor-pointer ${
                     marqueeDuration === opt.duration
-                      ? 'bg-primary text-black font-bold shadow-[0_2px_10px_rgba(255,101,0,0.3)]'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      ? 'bg-primary text-black font-extrabold shadow-[0_2px_10px_rgba(255,101,0,0.3)]'
+                      : 'text-neutral-900 hover:bg-neutral-200/50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-navy-blue/30 font-bold'
                   }`}
                 >
                   {opt.label}
@@ -376,7 +376,7 @@ export default function Resume() {
             >
               {/* Modal window container card */}
               <motion.div
-                className="bg-bg-card border border-navy-blue rounded-2xl w-full max-w-2xl overflow-hidden relative"
+                className="bg-white border border-neutral-200 dark:bg-bg-card dark:border-navy-blue rounded-2xl w-full max-w-2xl overflow-hidden relative shadow-2xl"
                 initial={{ scale: 0.95, y: 20, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1 }}
                 exit={{ scale: 0.95, y: 20, opacity: 0 }}
@@ -384,23 +384,23 @@ export default function Resume() {
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header title close block */}
-                <div className="p-5 border-b border-navy-blue flex items-center justify-between">
+                <div className="p-5 border-b border-neutral-200 dark:border-navy-blue flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Award className="w-5 h-5 text-primary" />
-                    <span className="font-sans font-bold text-sm text-white uppercase tracking-wider">
+                    <span className="font-sans font-bold text-sm text-neutral-900 dark:text-white uppercase tracking-wider">
                       {language === 'en' ? 'Credential Details' : 'Kredensial Sertifikasi'}
                     </span>
                   </div>
                   <button
                     onClick={() => setActiveCredentialModal(null)}
-                    className="p-1.5 rounded-lg bg-bg-base border border-navy-blue text-gray-400 hover:text-white"
+                    className="p-1.5 rounded-lg bg-neutral-100 dark:bg-bg-base border border-neutral-200 dark:border-navy-blue text-neutral-600 hover:text-black dark:text-gray-400 dark: hover:text-white transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Preview certificate representation image inside modal */}
-                <div className="aspect-[16/9] w-full bg-black relative border-b border-navy-blue">
+                <div className="aspect-[16/9] w-full bg-black relative border-b border-neutral-200 dark:border-navy-blue">
                   <img
                     src={activeCredentialModal.imageUrl}
                     alt={activeCredentialModal.title}
@@ -415,15 +415,15 @@ export default function Resume() {
 
                 {/* Info block details inside modal */}
                 <div className="p-6">
-                  <h3 className="text-xl font-sans font-extrabold text-white mb-1">
+                  <h3 className="text-xl font-sans font-extrabold text-neutral-900 dark:text-white mb-1">
                     {activeCredentialModal.title}
                   </h3>
-                  <p className="text-sm font-sans text-gray-400">
+                  <p className="text-sm font-sans text-neutral-700 dark:text-gray-400">
                     {language === 'en' ? 'Official Issuer:' : 'Penerbit Resmi:'}{' '}
                     <span className="text-primary font-semibold">{activeCredentialModal.issuer}</span> &middot; {activeCredentialModal.date}
                   </p>
                   
-                  <p className="text-xs text-gray-500 mt-4 leading-relaxed font-sans">
+                  <p className="text-xs text-neutral-500 dark:text-gray-400 mt-4 leading-relaxed font-sans">
                     {language === 'en' 
                       ? 'This certificate proves Abid Ghufron maintains exceptional proficiency in serverless cloud architecture, global state management interfaces, responsive pixel alignment grid networks, and modern Web Performance.'
                       : 'Sertifikat ini membuktikan Abid Ghufron berhak atas kemahiran yang tercantum dalam standar kualifikasi arsitektur cloud serverless, integrasi state manager global, penataan grid responsive, dan praktik terbaik Web Performance.'}
@@ -447,7 +447,7 @@ export default function Resume() {
                     </motion.a>
                     <button
                       onClick={() => setActiveCredentialModal(null)}
-                      className="flex-1 py-3 px-4 rounded-xl bg-bg-base border border-navy-blue text-gray-300 text-xs font-mono font-semibold hover:border-gray-500 transition-all text-center cursor-pointer"
+                      className="flex-1 py-3 px-4 rounded-xl bg-neutral-100 dark:bg-bg-base border border-neutral-200 dark:border-navy-blue text-neutral-800 dark:text-gray-300 text-xs font-mono font-semibold hover:border-neutral-400 dark:hover:border-gray-500 transition-all text-center cursor-pointer"
                     >
                       {language === 'en' ? 'Close Preview' : 'Tutup Pratinjau'}
                     </button>

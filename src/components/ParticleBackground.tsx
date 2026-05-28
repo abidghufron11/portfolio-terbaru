@@ -1,365 +1,252 @@
 import React, { useEffect, useRef } from 'react';
 
 export default function ParticleBackground() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000, active: false });
+  const dimensionsRef = useRef({ width: typeof window !== 'undefined' ? window.innerWidth : 800, height: typeof window !== 'undefined' ? window.innerHeight : 600 });
+  
+  // Track multiple user-initiated expanding click pulses
+  const clicksRef = useRef<Array<{
+    x: number;
+    y: number;
+    radius: number;
+    maxRadius: number;
+    speed: number;
+  }>>([]);
+
+  const isLightModeRef = useRef(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.className = "fixed inset-0 w-full h-full pointer-events-none z-[1] opacity-60 mix-blend-screen";
-    canvas.style.backfaceVisibility = 'hidden';
-    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    // Detect theme mode matching current system state
+    isLightModeRef.current = document.documentElement.classList.contains('light');
 
-    // Check if worker and transferControlToOffscreen are supported natively
-    const supportsOffscreen = 
-      typeof window !== 'undefined' &&
-      'transferControlToOffscreen' in HTMLCanvasElement.prototype &&
-      typeof window.Worker !== 'undefined';
+    // Create a MutationObserver to instantly capture user light/dark theme toggles
+    const themeObserver = new MutationObserver(() => {
+      isLightModeRef.current = document.documentElement.classList.contains('light');
+    });
+    
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
 
-    let worker: Worker | null = null;
-    let mainAnimationFrameId: number;
-    let fallbackCleanup: (() => void) | null = null;
+    // Device Pixel Ratio scaling for retina crispness (prevents blur)
+    const resizeCanvas = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      dimensionsRef.current = { width, height };
+    };
 
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Track mouse locations & click events across window bounds
     const handleMouseMove = (e: MouseEvent) => {
-      if (worker) {
-        worker.postMessage({ type: 'mousemove', x: e.clientX, y: e.clientY });
-      }
+      mouseRef.current.x = e.clientX;
+      mouseRef.current.y = e.clientY;
+      mouseRef.current.active = true;
     };
 
     const handleMouseLeave = () => {
-      if (worker) {
-        worker.postMessage({ type: 'mouseleave' });
-      }
+      mouseRef.current.active = false;
     };
 
-    let resizeTimeout: number;
-    const handleResize = () => {
-      window.clearTimeout(resizeTimeout);
-      resizeTimeout = window.setTimeout(() => {
-        const newWidth = window.innerWidth;
-        const newHeight = window.innerHeight;
-        if (worker) {
-          worker.postMessage({ type: 'resize', width: newWidth, height: newHeight });
-        }
-      }, 100);
+    const handleWindowClick = (e: MouseEvent) => {
+      clicksRef.current.push({
+        x: e.clientX,
+        y: e.clientY,
+        radius: 0,
+        maxRadius: Math.min(window.innerWidth, window.innerHeight) * 0.75 || 400,
+        speed: 6.5,
+      });
     };
 
-    if (supportsOffscreen) {
-      try {
-        const workerCode = `
-          let canvas = null;
-          let ctx = null;
-          let width = 0;
-          let height = 0;
-          let particles = [];
-          const mouse = { x: -1000, y: -1000, radius: 120 };
-          let animationFrameId = null;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('click', handleWindowClick);
 
-          class SparkParticle {
-            constructor() {
-              this.reset(true);
-            }
+    // Core Animation loop using requestAnimationFrame
+    let animationFrameId: number;
 
-            reset(initial = false) {
-              this.x = Math.random() * width;
-              this.y = initial ? Math.random() * height : height + 10;
-              this.size = Math.random() * 1.8 + 0.6;
-              this.speedX = (Math.random() - 0.5) * 0.3;
-              this.speedY = -(Math.random() * 0.4 + 0.2);
-              this.alpha = Math.random() * 0.45 + 0.15;
-              this.color = Math.random() > 0.25 ? '255, 101, 0' : '156, 163, 175';
-            }
+    const animate = (time: number) => {
+      const dpr = window.devicePixelRatio || 1;
+      const { width, height } = dimensionsRef.current;
 
-            update() {
-              this.y += this.speedY;
-              this.x += this.speedX;
+      // Clear the viewport
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-              if (this.y < -10) {
-                this.reset();
-              }
-              if (this.x < -10) {
-                this.x = width + 10;
-              } else if (this.x > width + 10) {
-                this.x = -10;
-              }
+      // Re-apply scale factor each frame in case dpr changes or coordinates scaled
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-              const dx = this.x - mouse.x;
-              const dy = this.y - mouse.y;
-              const distSq = dx * dx + dy * dy;
-              const radiusSq = mouse.radius * mouse.radius;
+      // Two slow-moving, autonomous ambient hotspots that float across the screen
+      // mimicking the video where circular hotspots slide over the grid to highlight dots
+      const hotspot1 = {
+        x: width * (0.5 + 0.32 * Math.sin(time * 0.00035)),
+        y: height * (0.5 + 0.26 * Math.cos(time * 0.00028)),
+        radius: Math.min(width, height) * 0.30 || 220,
+      };
 
-              if (distSq < radiusSq) {
-                const distance = Math.sqrt(distSq);
-                const force = (mouse.radius - distance) / mouse.radius;
-                const angle = Math.atan2(dy, dx);
-                this.x += Math.cos(angle) * force * 1.2;
-                this.y += Math.sin(angle) * force * 1.2;
-              }
-            }
+      const hotspot2 = {
+        x: width * (0.5 + 0.38 * Math.cos(time * 0.00022)),
+        y: height * (0.5 + 0.28 * Math.sin(time * 0.00045)),
+        radius: Math.min(width, height) * 0.34 || 250,
+      };
 
-            draw() {
-              if (!ctx) return;
-              ctx.beginPath();
-              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(' + this.color + ', ' + this.alpha + ')';
-              ctx.fill();
-
-              if (this.color === '255, 101, 0') {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size * 3.5, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 101, 0, ' + (this.alpha * 0.15) + ')';
-                ctx.fill();
-              }
-            }
-          }
-
-          function initParticles() {
-            const particleCount = Math.min(75, Math.floor((width * height) / 18000));
-            particles = [];
-            for (let i = 0; i < particleCount; i++) {
-              particles.push(new SparkParticle());
-            }
-          }
-
-          function animate() {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, width, height);
-
-            for (let i = 0; i < particles.length; i++) {
-              particles[i].update();
-              particles[i].draw();
-            }
-
-            animationFrameId = requestAnimationFrame(animate);
-          }
-
-          self.onmessage = function(e) {
-            const data = e.data;
-            if (data.type === 'init') {
-              canvas = data.canvas;
-              ctx = canvas.getContext('2d');
-              width = data.width;
-              height = data.height;
-              if (canvas) {
-                canvas.width = width;
-                canvas.height = height;
-              }
-              initParticles();
-              animate();
-            } else if (data.type === 'resize') {
-              width = data.width;
-              height = data.height;
-              if (canvas) {
-                canvas.width = width;
-                canvas.height = height;
-              }
-              initParticles();
-            } else if (data.type === 'mousemove') {
-              mouse.x = data.x;
-              mouse.y = data.y;
-            } else if (data.type === 'mouseleave') {
-              mouse.x = -1000;
-              mouse.y = -1000;
-            }
-          };
-        `;
-
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const workerUrl = URL.createObjectURL(blob);
-        worker = new Worker(workerUrl);
-
-        // Transfer control to offscreen
-        const offscreenCanvas = canvas.transferControlToOffscreen();
-        worker.postMessage(
-          {
-            type: 'init',
-            canvas: offscreenCanvas,
-            width,
-            height,
-          },
-          [offscreenCanvas]
-        );
-
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseleave', handleMouseLeave);
-        window.addEventListener('resize', handleResize);
-
-        // Revoke immediately as it's loaded
-        URL.revokeObjectURL(workerUrl);
-      } catch (err) {
-        console.warn('OffscreenCanvas or Worker initialization failed, falling back to main-thread rendering:', err);
-        worker = null;
-        setupMainThreadFallback();
+      // Progress active click waves
+      const clicks = clicksRef.current;
+      for (let i = clicks.length - 1; i >= 0; i--) {
+        const pulse = clicks[i];
+        pulse.radius += pulse.speed;
+        if (pulse.radius > pulse.maxRadius) {
+          clicks.splice(i, 1);
+        }
       }
-    } else {
-      setupMainThreadFallback();
-    }
 
-    function setupMainThreadFallback() {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      // Grid spacing parameters
+      const spacing = 28;
+      const offsetX = (width % spacing) / 2;
+      const offsetY = (height % spacing) / 2;
 
-      let currentWidth = canvas.width = window.innerWidth;
-      let currentHeight = canvas.height = window.innerHeight;
+      const cols = Math.floor(width / spacing) + 1;
+      const rows = Math.floor(height / spacing) + 1;
 
-      const localMouse = {
-        x: -1000,
-        y: -1000,
-        radius: 120,
-      };
+      const isLight = isLightModeRef.current;
+      
+      // Fine-tune dot styles for light / dark ambient compatibility
+      const baseDotColor = isLight ? '71, 85, 105' : '148, 163, 184';
+      const baseDotOpacity = isLight ? 0.07 : 0.09;
 
-      const localHandleMouseMove = (e: MouseEvent) => {
-        localMouse.x = e.clientX;
-        localMouse.y = e.clientY;
-      };
+      const mouse = mouseRef.current;
+      const mouseRadius = 140;
 
-      const localHandleMouseLeave = () => {
-        localMouse.x = -1000;
-        localMouse.y = -1000;
-      };
+      // Nested loop across 2D coordinates
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          const x = c * spacing + offsetX;
+          const y = r * spacing + offsetY;
 
-      let localResizeTimeout: number;
-      const localHandleResize = () => {
-        window.clearTimeout(localResizeTimeout);
-        localResizeTimeout = window.setTimeout(() => {
-          currentWidth = canvas.width = window.innerWidth;
-          currentHeight = canvas.height = window.innerHeight;
-          initLocalParticles();
-        }, 100);
-      };
+          let highlightIntensity = 0;
+          let glowColor = '255, 101, 0'; // Fallback / Mouse Orange accent: #FF6500
 
-      class LocalSparkParticle {
-        x!: number;
-        y!: number;
-        size!: number;
-        speedX!: number;
-        speedY!: number;
-        alpha!: number;
-        color!: string;
-
-        constructor() {
-          this.reset(true);
-        }
-
-        reset(initial = false) {
-          this.x = Math.random() * currentWidth;
-          this.y = initial ? Math.random() * currentHeight : currentHeight + 10;
-          this.size = Math.random() * 1.8 + 0.6;
-          this.speedX = (Math.random() - 0.5) * 0.3;
-          this.speedY = -(Math.random() * 0.4 + 0.2);
-          this.alpha = Math.random() * 0.45 + 0.15;
-          this.color = Math.random() > 0.25 ? '255, 101, 0' : '156, 163, 175';
-        }
-
-        update() {
-          this.y += this.speedY;
-          this.x += this.speedX;
-
-          if (this.y < -10) {
-            this.reset();
-          }
-          if (this.x < -10) {
-            this.x = currentWidth + 10;
-          } else if (this.x > currentWidth + 10) {
-            this.x = -10;
+          // Impact evaluation: 1. Mouse coordinate proximity (Interactive glowing orange)
+          if (mouse.active) {
+            const dx = x - mouse.x;
+            const dy = y - mouse.y;
+            const distSq = dx * dx + dy * dy;
+            const activeRadiusSq = mouseRadius * mouseRadius;
+            if (distSq < activeRadiusSq) {
+              const distance = Math.sqrt(distSq);
+              const factor = (mouseRadius - distance) / mouseRadius;
+              highlightIntensity += Math.pow(factor, 1.8);
+            }
           }
 
-          const dx = this.x - localMouse.x;
-          const dy = this.y - localMouse.y;
-          const distSq = dx * dx + dy * dy;
-          const radiusSq = localMouse.radius * localMouse.radius;
-
-          if (distSq < radiusSq) {
-            const distance = Math.sqrt(distSq);
-            const force = (localMouse.radius - distance) / localMouse.radius;
-            const angle = Math.atan2(dy, dx);
-            this.x += Math.cos(angle) * force * 1.2;
-            this.y += Math.sin(angle) * force * 1.2;
+          // Impact evaluation: 2. Hotspot 1 (Autonomous wave that turns dots into deep glowing violet/indigo)
+          const dx1 = x - hotspot1.x;
+          const dy1 = y - hotspot1.y;
+          const dist1Sq = dx1 * dx1 + dy1 * dy1;
+          const r1Sq = hotspot1.radius * hotspot1.radius;
+          if (dist1Sq < r1Sq) {
+            const distance = Math.sqrt(dist1Sq);
+            const factor = (hotspot1.radius - distance) / hotspot1.radius;
+            const h1Val = Math.pow(factor, 2.2);
+            highlightIntensity += h1Val;
+            // Hotspot 1 brings a soft ambient Indigo violet (#7C3AED) hue
+            if (h1Val > 0.04) {
+              glowColor = '124, 58, 237'; 
+            }
           }
-        }
 
-        draw() {
-          if (!ctx) return;
+          // Impact evaluation: 3. Hotspot 2 (Autonomous wave that accents in deep glowing blue/cyan)
+          const dx2 = x - hotspot2.x;
+          const dy2 = y - hotspot2.y;
+          const dist2Sq = dx2 * dx2 + dy2 * dy2;
+          const r2Sq = hotspot2.radius * hotspot2.radius;
+          if (dist2Sq < r2Sq) {
+            const distance = Math.sqrt(dist2Sq);
+            const factor = (hotspot2.radius - distance) / hotspot2.radius;
+            const h2Val = Math.pow(factor, 2.0);
+            highlightIntensity += h2Val;
+            // Hotspot 2 brings a secondary cyan-blue hue
+            if (h2Val > 0.1 && glowColor !== '124, 58, 237') {
+              glowColor = '14, 116, 144'; // cyan-700 / dark teal-cyan
+            }
+          }
+
+          // Impact evaluation: 4. User-initiated Click waves (Rapid expanding pulse)
+          for (let i = 0; i < clicks.length; i++) {
+            const pulse = clicks[i];
+            const dx = x - pulse.x;
+            const dy = y - pulse.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const distDiff = Math.abs(distance - pulse.radius);
+            const pulseWidth = 45; // Thickness of the pulse wave index
+            if (distDiff < pulseWidth) {
+              const factor = (pulseWidth - distDiff) / pulseWidth;
+              const opacityFalloff = 1.0 - (pulse.radius / pulse.maxRadius);
+              highlightIntensity += Math.pow(factor, 1.4) * opacityFalloff * 1.6;
+              // Click waves flash in the brand's bright neon orange
+              glowColor = '255, 101, 0';
+            }
+          }
+
+          // Draw the physical dot circle
           ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
-          ctx.fill();
+          if (highlightIntensity > 0.01) {
+            // Amplified states (glowing vibrant color with custom radius adjustment)
+            const targetAlpha = Math.min(1.0, baseDotOpacity + highlightIntensity * 0.95);
+            const targetRadius = 1.0 + Math.min(2.0, highlightIntensity * 1.6);
+            ctx.arc(x, y, targetRadius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${glowColor}, ${targetAlpha})`;
+            ctx.fill();
 
-          if (this.color === '255, 101, 0') {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 3.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 101, 0, ${this.alpha * 0.15})`;
+            // Render a smooth secondary background blur ring for active nodes without resorting to shadowBlur filter (which causes latency)
+            if (highlightIntensity > 0.14) {
+              ctx.beginPath();
+              ctx.arc(x, y, targetRadius * 3.8, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${glowColor}, ${highlightIntensity * 0.16})`;
+              ctx.fill();
+            }
+          } else {
+            // Dormant / standard state (clean, low-contrast dot grid alignment)
+            ctx.arc(x, y, 1.0, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${baseDotColor}, ${baseDotOpacity})`;
             ctx.fill();
           }
         }
       }
 
-      let localParticles: LocalSparkParticle[] = [];
+      animationFrameId = requestAnimationFrame(animate);
+    };
 
-      function initLocalParticles() {
-        const particleCount = Math.min(75, Math.floor((currentWidth * currentHeight) / 18000));
-        localParticles = [];
-        for (let i = 0; i < particleCount; i++) {
-          localParticles.push(new LocalSparkParticle());
-        }
-      }
+    animationFrameId = requestAnimationFrame(animate);
 
-      const animateLocal = () => {
-        if (!ctx) return;
-        ctx.clearRect(0, 0, currentWidth, currentHeight);
-
-        for (let i = 0; i < localParticles.length; i++) {
-          localParticles[i].update();
-          localParticles[i].draw();
-        }
-
-        mainAnimationFrameId = requestAnimationFrame(animateLocal);
-      };
-
-      initLocalParticles();
-      animateLocal();
-
-      window.addEventListener('mousemove', localHandleMouseMove);
-      window.addEventListener('mouseleave', localHandleMouseLeave);
-      window.addEventListener('resize', localHandleResize);
-
-      fallbackCleanup = () => {
-        cancelAnimationFrame(mainAnimationFrameId);
-        window.removeEventListener('mousemove', localHandleMouseMove);
-        window.removeEventListener('mouseleave', localHandleMouseLeave);
-        window.removeEventListener('resize', localHandleResize);
-        window.clearTimeout(localResizeTimeout);
-      };
-    }
-
+    // Precise DOM removal and listener teardowns
     return () => {
-      if (worker) {
-        worker.terminate();
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseleave', handleMouseLeave);
-        window.removeEventListener('resize', handleResize);
-        window.clearTimeout(resizeTimeout);
-      }
-      if (fallbackCleanup) {
-        fallbackCleanup();
-      }
-      if (canvas.parentNode) {
-        canvas.parentNode.removeChild(canvas);
-      }
+      cancelAnimationFrame(animationFrameId);
+      themeObserver.disconnect();
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('click', handleWindowClick);
     };
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-[1]"
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-full h-full pointer-events-none z-[1] mix-blend-normal dark:mix-blend-screen opacity-90 dark:opacity-75"
+      style={{ backfaceVisibility: 'hidden' }}
     />
   );
 }

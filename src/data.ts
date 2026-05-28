@@ -14,7 +14,7 @@ export const personalData = {
     github: "https://github.com/abidghufron11",
     linkedin: "https://linkedin.com",
     twitter: "https://twitter.com",
-    instagram: "https://instagram.com"
+    instagram: "https://instagram.com/a.ghufron_"
   }
 };
 
